@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <!-- Background pill -->
+  <rect x="0" y="0" width="200" height="60" rx="10" fill="#1E3A8A"/>
+  
+  <!-- V letter block -->
+  <rect x="8" y="8" width="44" height="44" rx="6" fill="#06B6D4"/>
+  <text x="30" y="38" font-family="Arial, sans-serif" font-size="28" font-weight="900" fill="white" text-anchor="middle">V</text>
+  
+  <!-- Text: VIGNAN -->
+  <text x="62" y="28" font-family="Arial, sans-serif" font-size="15" font-weight="900" fill="white" letter-spacing="2">VIGNAN</text>
+  <!-- Sub text -->
+  <text x="62" y="44" font-family="Arial, sans-serif" font-size="8" font-weight="600" fill="#06B6D4" letter-spacing="1.5">INSTITUTE OF TECHNOLOGY</text>
+  <!-- Bottom text -->
+  <text x="62" y="54" font-family="Arial, sans-serif" font-size="7" font-weight="500" fill="#93C5FD" letter-spacing="1">AND SCIENCE</text>
+</svg>
