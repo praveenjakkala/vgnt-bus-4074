@@ -89,17 +89,32 @@ const StudentDashboard = () => {
         };
         fetchStudentData();
 
-        // Realtime bus tracking
+        // Realtime bus tracking + GPS-based route stop auto-update
+        const applyStopStatuses = (location) => {
+            if (!location?.stopStatuses) return;
+            setRouteStops(prev => prev.map(stop => {
+                const match = location.stopStatuses.find(s => s.id === (prev.indexOf(stop) + 1));
+                return match ? { ...stop, status: match.status } : stop;
+            }));
+        };
+
         const initBus = async () => {
             const { data } = await supabase.from('buses').select('current_location, status').eq('id', BUS_ID).single();
-            if (data) { setBusLocation(data.current_location || null); setBusActive(data.status === 'active'); }
+            if (data) {
+                setBusLocation(data.current_location || null);
+                setBusActive(data.status === 'active');
+                applyStopStatuses(data.current_location);
+            }
         };
         initBus();
 
         const channel = supabase.channel('bus-location')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'buses', filter: `id=eq.${BUS_ID}` }, (payload) => {
-                setBusLocation(payload.new.current_location || null);
+                const loc = payload.new.current_location || null;
+                setBusLocation(loc);
                 setBusActive(payload.new.status === 'active');
+                // ✅ Update route stop statuses based on driver GPS
+                applyStopStatuses(loc);
             }).subscribe();
 
         return () => { supabase.removeChannel(channel); };
@@ -154,20 +169,30 @@ const StudentDashboard = () => {
                 <AnimatePresence mode='wait'>
                     {activeTab === 'status' && (
                         <motion.div key="status" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
-                            {/* Current Location Card */}
+                            {/* Current Location Card — live from GPS */}
                             <motion.div whileHover={{ y: -5 }} className="bg-white rounded-xl p-5 shadow-lg border-t-4 border-vignan-accent relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-vignan-blue/5 rounded-bl-full -mr-4 -mt-4"></div>
                                 <div className="flex justify-between items-start mb-4 relative z-10">
                                     <div>
-                                        <h2 className="text-gray-500 text-xs uppercase font-bold tracking-wider">Current Location</h2>
-                                        <p className="text-xl font-bold text-gray-900 mt-1">Clock Tower</p>
+                                        <h2 className="text-gray-500 text-xs uppercase font-bold tracking-wider">Bus Location</h2>
+                                        <p className="text-xl font-bold text-gray-900 mt-1">
+                                            {busActive && busLocation?.nextStop
+                                                ? `Near ${busLocation.nextStop}`
+                                                : 'Bus Not Started'}
+                                        </p>
                                     </div>
-                                    <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center shadow-sm">
-                                        <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>On Time
+                                    <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center shadow-sm ${busActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                        <span className={`w-2 h-2 rounded-full mr-2 ${busActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                                        {busActive ? 'On Route' : 'Offline'}
                                     </div>
                                 </div>
                                 <div className="flex items-center text-sm text-gray-600 mb-2">
-                                    <MapPin className="w-4 h-4 mr-2 text-vignan-blue" /><span>Next Stop: VT Colony</span>
+                                    <MapPin className="w-4 h-4 mr-2 text-vignan-blue" />
+                                    <span>
+                                        {busActive && busLocation?.nextStop
+                                            ? `Next Stop: ${busLocation.nextStop}`
+                                            : 'Waiting for trip to start'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center text-sm text-gray-600">
                                     <Clock className="w-4 h-4 mr-2 text-vignan-blue" /><span>ETA: 15 mins to College</span>
