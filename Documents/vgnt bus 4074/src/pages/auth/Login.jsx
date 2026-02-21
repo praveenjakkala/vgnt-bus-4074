@@ -95,7 +95,7 @@ const Login = () => {
                 <motion.div variants={containerVariants} initial="hidden" animate="visible" className="text-center relative z-10">
                     <motion.div variants={itemVariants} className="flex justify-center mb-6">
                         <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 shadow-xl">
-                            <VignanLogo className="h-12" />
+                            <VignanLogo />
                         </div>
                     </motion.div>
 
@@ -140,8 +140,8 @@ const Login = () => {
                                 whileTap={{ scale: 0.97 }}
                                 onClick={() => setRole(id)}
                                 className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 ${role === id
-                                        ? 'border-vignan-blue bg-vignan-blue text-white shadow-lg shadow-blue-200'
-                                        : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
+                                    ? 'border-vignan-blue bg-vignan-blue text-white shadow-lg shadow-blue-200'
+                                    : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
                                     }`}
                             >
                                 <Icon className="w-6 h-6 mb-1" />

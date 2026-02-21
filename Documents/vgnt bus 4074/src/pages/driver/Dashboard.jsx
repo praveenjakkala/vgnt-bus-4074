@@ -143,7 +143,7 @@ const DriverDashboard = () => {
             {/* Header */}
             <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100">
                 <div className="p-4 flex justify-between items-center max-w-xl mx-auto">
-                    <VignanLogo className="h-8" />
+                    <VignanLogo dark={true} />
                     <div className="flex items-center space-x-2">
                         <span className="relative flex h-3 w-3">
                             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${gpsStatusConfig[gpsStatus].bg}`}></span>
@@ -244,8 +244,8 @@ const DriverDashboard = () => {
                                     <motion.div key={i} variants={itemVariants} className="pl-6 relative pb-6 last:pb-0">
                                         {/* Status dot */}
                                         <div className={`absolute -left-[9px] top-1 w-[18px] h-[18px] rounded-full border-4 z-10 ${stop.status === 'passed' ? 'bg-vignan-blue border-vignan-blue' :
-                                                stop.status === 'next' ? 'bg-white border-vignan-cyan animate-pulse' :
-                                                    'bg-white border-gray-300'
+                                            stop.status === 'next' ? 'bg-white border-vignan-cyan animate-pulse' :
+                                                'bg-white border-gray-300'
                                             }`} />
                                         {/* Bus icon on next stop */}
                                         {stop.status === 'next' && (
@@ -257,7 +257,7 @@ const DriverDashboard = () => {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <h3 className={`font-bold text-sm ${stop.status === 'next' ? 'text-vignan-blue text-base' :
-                                                        stop.status === 'passed' ? 'text-gray-500 line-through' : 'text-gray-400'
+                                                    stop.status === 'passed' ? 'text-gray-500 line-through' : 'text-gray-400'
                                                     }`}>{stop.name}</h3>
                                                 <p className="text-xs text-gray-400 font-mono mt-0.5 flex items-center">
                                                     <Clock className="w-3 h-3 mr-1" />{stop.time}
@@ -265,8 +265,8 @@ const DriverDashboard = () => {
                                                 </p>
                                             </div>
                                             <span className={`text-xs font-bold px-2 py-1 rounded-full ${stop.status === 'passed' ? 'bg-gray-100 text-gray-400' :
-                                                    stop.status === 'next' ? 'bg-yellow-100 text-yellow-700' :
-                                                        'bg-gray-50 text-gray-300'
+                                                stop.status === 'next' ? 'bg-yellow-100 text-yellow-700' :
+                                                    'bg-gray-50 text-gray-300'
                                                 }`}>{stop.pickupCount} stu.</span>
                                         </div>
                                     </motion.div>
@@ -296,7 +296,7 @@ const DriverDashboard = () => {
                                         </div>
                                         <motion.button whileTap={{ scale: 0.9 }} onClick={() => toggleAttendance(s.id)}
                                             className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-bold ${s.status === 'present' ? 'bg-green-100 text-green-700' :
-                                                    s.status === 'absent' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+                                                s.status === 'absent' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
                                                 }`}>
                                             {s.status === 'present' ? <CheckCircle className="w-3 h-3" /> : s.status === 'absent' ? <XCircle className="w-3 h-3" /> : null}
                                             <span className="capitalize">{s.status}</span>

@@ -194,7 +194,7 @@ const ManagementDashboard = () => {
         <div className="min-h-screen bg-gray-50 font-sans">
             <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100">
                 <div className="flex justify-between items-center p-4 max-w-7xl mx-auto">
-                    <VignanLogo className="h-10" />
+                    <VignanLogo dark={true} />
                     <div className="text-right">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Management Portal</p>
                         <p className="text-sm font-black text-vignan-blue">VGNT Bus 4074</p>

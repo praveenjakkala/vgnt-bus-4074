@@ -129,7 +129,7 @@ const StudentDashboard = () => {
         <div className="min-h-screen bg-gray-50 pb-20 font-sans">
             <header className="sticky top-0 z-20 bg-white shadow-md">
                 <div className="flex justify-between items-center p-4 border-b border-gray-100">
-                    <VignanLogo className="h-10" />
+                    <VignanLogo dark={true} />
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
                         onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
                         <LogOut className="w-5 h-5" />
