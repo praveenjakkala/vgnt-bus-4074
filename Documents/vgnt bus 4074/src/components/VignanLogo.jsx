@@ -1,61 +1,69 @@
-import React from 'react';
+import { motion } from 'framer-motion';
 
 /**
- * VignanLogo — uses the real Vignan Institute PNG logo.
- * Props:
- *   size   = pixel size for the logo icon (default 40)
- *   dark   = true → dark blue text (white card backgrounds)
- *   dark   = false → white text (dark blue panel backgrounds)
+ * VignanLogo — Matches the official horizontal layout:
+ * [Logo] VIGNAN
+ * -----------------------------------------
+ * Institute of Technology and Science
  */
-const VignanLogo = ({ size = 40, dark = false, style = {} }) => {
-    const textColor = dark ? '#1E3A8A' : '#FFFFFF';
-    const subColor = '#7C3AED';  // Vignan purple to match logo
-    const microColor = dark ? '#94a3b8' : '#C4B5FD';
+const VignanLogo = ({ size = 60, dark = false, style = {} }) => {
+    // Colors from official logo
+    const officialBlue = '#0072BC';
+    const textColor = dark ? officialBlue : '#FFFFFF';
+    const subColor = dark ? officialBlue : '#FFFFFF';
+    const lineColor = dark ? '#E2E8F0' : 'rgba(255,255,255,0.3)';
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', ...style }}>
-            {/* Real Vignan Institute PNG logo */}
-            <img
-                src="/vignan-logo.png"
-                alt="Vignan Institute Logo"
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', ...style }}>
+            {/* Official Logo Icon */}
+            <motion.div
+                whileHover={{ scale: 1.05 }}
                 style={{
                     width: `${size}px`,
                     height: `${size}px`,
-                    objectFit: 'contain',
                     flexShrink: 0,
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
                 }}
-            />
+            >
+                <img
+                    src="/vignan-logo.png"
+                    alt="Vignan Institute Logo"
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                    }}
+                />
+            </motion.div>
 
-            {/* Text block */}
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+            {/* Branding Text Block */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{
-                    fontFamily: 'Arial Black, Arial, sans-serif',
-                    fontWeight: 900,
-                    fontSize: '13px',
+                    fontFamily: '"Outfit", sans-serif',
+                    fontWeight: 800,
+                    fontSize: `${size * 0.6}px`,
                     color: textColor,
-                    letterSpacing: '2px',
-                    lineHeight: '1.15'
+                    letterSpacing: '1px',
+                    lineHeight: '1.1',
+                    textTransform: 'uppercase'
                 }}>VIGNAN</span>
 
-                <span style={{
-                    fontFamily: 'Arial, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '7.5px',
-                    color: subColor,
-                    letterSpacing: '1.5px',
-                    textTransform: 'uppercase',
-                    lineHeight: '1.4'
-                }}>INST. OF TECHNOLOGY</span>
+                {/* Horizontal Divider Line */}
+                <div style={{
+                    height: '1.5px',
+                    width: '100%',
+                    backgroundColor: lineColor,
+                    margin: '2px 0'
+                }}></div>
 
                 <span style={{
-                    fontFamily: 'Arial, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '6.5px',
-                    color: microColor,
-                    letterSpacing: '0.8px',
-                    textTransform: 'uppercase'
-                }}>AND SCIENCE &nbsp;·&nbsp; EAMCET: VGNT</span>
+                    fontFamily: '"Outfit", sans-serif',
+                    fontWeight: 500,
+                    fontSize: `${size * 0.25}px`,
+                    color: subColor,
+                    letterSpacing: '0.2px',
+                    lineHeight: '1.2',
+                    whiteSpace: 'nowrap'
+                }}>Institute of Technology and Science</span>
             </div>
         </div>
     );

@@ -126,28 +126,77 @@ const StudentDashboard = () => {
     const listItem = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 font-sans">
-            <header className="sticky top-0 z-20 bg-white shadow-md">
-                <div className="flex justify-between items-center p-4 border-b border-gray-100">
-                    <VignanLogo dark={true} />
-                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-                        onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+        <div className="min-h-screen bg-[#2D31A6] text-white relative overflow-hidden font-sans">
+            {/* Immersive Background Layer */}
+            <div className="fixed inset-0 z-0">
+                {/* Real Campus Image with Shading */}
+                <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+                    style={{ backgroundImage: 'url("/background-new.jpg")' }}
+                ></div>
+
+                {/* Professional Shading Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#2D31A6]/90 via-[#2D31A6]/80 to-indigo-900/90"></div>
+
+                {/* Dynamic Floating Glows */}
+                <motion.div
+                    animate={{
+                        x: [0, 100, 0],
+                        y: [0, 50, 0],
+                        scale: [1, 1.2, 1],
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-vignan-cyan/20 blur-[120px] rounded-full"
+                />
+                <motion.div
+                    animate={{
+                        x: [0, -80, 0],
+                        y: [0, 100, 0],
+                        scale: [1, 1.3, 1],
+                    }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-indigo-500/20 blur-[100px] rounded-full"
+                />
+            </div>
+
+            {/* Glassmorphism Header */}
+            <header className="sticky top-0 z-40 bg-white/5 backdrop-blur-xl border-b border-white/10">
+                <div className="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+                    <VignanLogo size={40} dark={false} />
+                    <motion.button
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleLogout}
+                        className="p-2 bg-white/10 rounded-full text-white hover:bg-red-500/20 hover:text-red-400 transition-all border border-white/10"
+                    >
                         <LogOut className="w-5 h-5" />
                     </motion.button>
                 </div>
-                <div className="bg-vignan-blue text-white p-4 shadow-inner">
-                    <div className="flex justify-between items-end">
-                        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                            <p className="text-vignan-accent text-xs font-bold uppercase tracking-wider mb-1">Student Dashboard</p>
-                            <h1 className="text-xl font-bold">{student.name}</h1>
-                            <p className="text-sm opacity-80">{student.id}</p>
-                        </motion.div>
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                            <div className="inline-block bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/20">
-                                {student.busNumber}
+
+                {/* Student Identity Card (Glass) */}
+                <div className="max-w-md mx-auto px-4 pb-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl relative overflow-hidden"
+                    >
+                        <div className="flex justify-between items-end relative z-10">
+                            <div>
+                                <p className="text-vignan-cyan text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Authenticated Student</p>
+                                <h1 className="text-2xl font-black tracking-tight">{student.name}</h1>
+                                <p className="text-xs text-blue-200/70 font-medium tracking-wide">{student.id}</p>
                             </div>
-                        </motion.div>
-                    </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <span className="bg-vignan-cyan/20 text-vignan-cyan px-3 py-1 rounded-lg text-[10px] font-bold border border-vignan-cyan/30">
+                                    {student.busNumber}
+                                </span>
+                                <div className="flex items-center gap-1 text-[10px] text-white/40">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                                    <span>Session Active</span>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
             </header>
 
