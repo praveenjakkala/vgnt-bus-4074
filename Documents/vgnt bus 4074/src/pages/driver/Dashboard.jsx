@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Users, Navigation, CheckCircle, XCircle, Bus, Clock, LogOut } from 'lucide-react';
 import VignanLogo from '../../components/VignanLogo';
+import ThemeToggle from '../../components/ThemeToggle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const BUS_ID = 'ddcd5b3a-fd05-4bbc-96e6-eeac9b19141f';
 
@@ -48,6 +50,7 @@ const computeStopStatuses = (lat, lng) => {
 };
 
 const DriverDashboard = () => {
+    const navigate = useNavigate();
     const [isTracking, setIsTracking] = useState(false);
     const [activeTab, setActiveTab] = useState('route');
     const [gpsStatus, setGpsStatus] = useState('idle');
@@ -139,19 +142,30 @@ const DriverDashboard = () => {
     const itemVariants = { hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0 } };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 font-sans">
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 font-sans transition-colors duration-300">
             {/* Header */}
-            <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100">
+            <header className="bg-white dark:bg-slate-900 shadow-sm sticky top-0 z-20 border-b border-gray-100 dark:border-slate-800">
                 <div className="p-4 flex justify-between items-center max-w-xl mx-auto">
                     <VignanLogo dark={true} />
-                    <div className="flex items-center space-x-2">
-                        <span className="relative flex h-3 w-3">
-                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${gpsStatusConfig[gpsStatus].bg}`}></span>
-                            <span className={`relative inline-flex rounded-full h-3 w-3 ${gpsStatusConfig[gpsStatus].bg}`}></span>
-                        </span>
-                        <span className={`text-xs font-bold uppercase ${gpsStatusConfig[gpsStatus].color}`}>
-                            {gpsStatusConfig[gpsStatus].label}
-                        </span>
+                    <div className="flex items-center space-x-4">
+                        <ThemeToggle />
+                        <div className="flex items-center space-x-2">
+                            <span className="relative flex h-3 w-3">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${gpsStatusConfig[gpsStatus].bg}`}></span>
+                                <span className={`relative inline-flex rounded-full h-3 w-3 ${gpsStatusConfig[gpsStatus].bg}`}></span>
+                            </span>
+                            <span className={`text-xs font-bold uppercase ${gpsStatusConfig[gpsStatus].color}`}>
+                                {gpsStatusConfig[gpsStatus].label}
+                            </span>
+                        </div>
+                        <motion.button
+                            whileHover={{ scale: 1.1, rotate: 90 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => navigate('/')}
+                            className="p-2 bg-gray-100 dark:bg-slate-800 rounded-full text-gray-500 dark:text-gray-400 hover:bg-red-500/10 hover:text-red-500 transition-all border border-gray-200 dark:border-slate-700"
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </motion.button>
                     </div>
                 </div>
 
@@ -191,36 +205,36 @@ const DriverDashboard = () => {
                 <AnimatePresence>
                     {isTracking && (
                         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                            className="bg-green-50 border border-green-200 rounded-xl p-4">
-                            <p className="text-sm font-bold text-green-800 mb-1">📡 GPS Active — Students See You Live</p>
-                            {gpsStatus === 'locating' && <p className="text-xs text-yellow-600">Acquiring GPS signal…</p>}
+                            className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-4">
+                            <p className="text-sm font-bold text-green-800 dark:text-green-400 mb-1">📡 GPS Active — Students See You Live</p>
+                            {gpsStatus === 'locating' && <p className="text-xs text-yellow-600 dark:text-yellow-400">Acquiring GPS signal…</p>}
                             {currentCoords && (
-                                <div className="mt-2 bg-white rounded-lg p-2.5 border border-green-100">
-                                    <p className="text-xs text-gray-500 font-bold mb-1 uppercase">Live Coordinates</p>
-                                    <p className="text-xs text-green-700 font-mono">Lat: {currentCoords.lat.toFixed(6)}</p>
-                                    <p className="text-xs text-green-700 font-mono">Lng: {currentCoords.lng.toFixed(6)}</p>
+                                <div className="mt-2 bg-white dark:bg-slate-900 rounded-lg p-2.5 border border-green-100 dark:border-green-900/30">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mb-1 uppercase">Live Coordinates</p>
+                                    <p className="text-xs text-green-700 dark:text-green-400 font-mono">Lat: {currentCoords.lat.toFixed(6)}</p>
+                                    <p className="text-xs text-green-700 dark:text-green-400 font-mono">Lng: {currentCoords.lng.toFixed(6)}</p>
                                     {nextStop && (
-                                        <p className="text-xs text-vignan-blue font-bold mt-2 border-t border-green-100 pt-2">
+                                        <p className="text-xs text-vignan-blue dark:text-vignan-cyan font-bold mt-2 border-t border-green-100 dark:border-green-900/30 pt-2">
                                             🚌 Heading to: {nextStop.name} ({nextStop.time})
                                         </p>
                                     )}
                                 </div>
                             )}
                             {gpsStatus === 'error' && (
-                                <p className="text-xs text-red-600 mt-1">⚠️ GPS denied — enable location in Chrome settings → Site Settings → Location</p>
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">⚠️ GPS denied — enable location in Chrome settings → Site Settings → Location</p>
                             )}
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 {/* Tabs */}
-                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
                     {[{ id: 'route', label: 'Route', icon: MapPin }, { id: 'students', label: 'Attendance', icon: Users }].map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
                         return (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                className={`flex-1 py-3 px-2 flex items-center justify-center text-xs font-bold rounded-lg relative transition-all ${isActive ? 'text-white' : 'text-gray-500'}`}>
+                                className={`flex-1 py-3 px-2 flex items-center justify-center text-xs font-bold rounded-lg relative transition-all ${isActive ? 'text-white' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}>
                                 {isActive && <motion.div layoutId="driverTab" className="absolute inset-0 bg-vignan-blue rounded-lg shadow" transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }} />}
                                 <span className="relative z-10 flex items-center"><Icon className="w-4 h-4 mr-1.5" />{tab.label}</span>
                             </button>
@@ -231,12 +245,12 @@ const DriverDashboard = () => {
                 <AnimatePresence mode="wait">
                     {activeTab === 'route' && (
                         <motion.div key="route" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
-                                <h2 className="font-bold text-gray-800 flex items-center text-sm">
-                                    <MapPin className="w-4 h-4 mr-2 text-vignan-blue" /> Route Stops
+                            className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+                            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center">
+                                <h2 className="font-bold text-gray-800 dark:text-white flex items-center text-sm">
+                                    <MapPin className="w-4 h-4 mr-2 text-vignan-blue dark:text-vignan-cyan" /> Route Stops
                                 </h2>
-                                <span className="text-xs text-gray-400 font-medium">{passedCount} passed · {stops.length - passedCount - 1} ahead</span>
+                                <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">{passedCount} passed · {stops.length - passedCount - 1} ahead</span>
                             </div>
                             <motion.div variants={containerVariants} initial="hidden" animate="show"
                                 className="relative border-l-2 border-vignan-blue/20 ml-8 py-4 space-y-0">
@@ -244,8 +258,8 @@ const DriverDashboard = () => {
                                     <motion.div key={i} variants={itemVariants} className="pl-6 relative pb-6 last:pb-0">
                                         {/* Status dot */}
                                         <div className={`absolute -left-[9px] top-1 w-[18px] h-[18px] rounded-full border-4 z-10 ${stop.status === 'passed' ? 'bg-vignan-blue border-vignan-blue' :
-                                            stop.status === 'next' ? 'bg-white border-vignan-cyan animate-pulse' :
-                                                'bg-white border-gray-300'
+                                            stop.status === 'next' ? 'bg-white dark:bg-slate-900 border-vignan-cyan animate-pulse' :
+                                                'bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700'
                                             }`} />
                                         {/* Bus icon on next stop */}
                                         {stop.status === 'next' && (
@@ -256,17 +270,17 @@ const DriverDashboard = () => {
                                         )}
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <h3 className={`font-bold text-sm ${stop.status === 'next' ? 'text-vignan-blue text-base' :
-                                                    stop.status === 'passed' ? 'text-gray-500 line-through' : 'text-gray-400'
+                                                <h3 className={`font-bold text-sm ${stop.status === 'next' ? 'text-vignan-blue dark:text-vignan-cyan text-base' :
+                                                    stop.status === 'passed' ? 'text-gray-500 dark:text-slate-500 line-through' : 'text-gray-400 dark:text-slate-600'
                                                     }`}>{stop.name}</h3>
-                                                <p className="text-xs text-gray-400 font-mono mt-0.5 flex items-center">
+                                                <p className="text-xs text-gray-400 dark:text-slate-500 font-mono mt-0.5 flex items-center">
                                                     <Clock className="w-3 h-3 mr-1" />{stop.time}
-                                                    {stop.status === 'passed' && <span className="ml-2 text-green-600 font-bold">✓ Passed</span>}
+                                                    {stop.status === 'passed' && <span className="ml-2 text-green-600 dark:text-green-400 font-bold">✓ Passed</span>}
                                                 </p>
                                             </div>
-                                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${stop.status === 'passed' ? 'bg-gray-100 text-gray-400' :
-                                                stop.status === 'next' ? 'bg-yellow-100 text-yellow-700' :
-                                                    'bg-gray-50 text-gray-300'
+                                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${stop.status === 'passed' ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500' :
+                                                stop.status === 'next' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                                                    'bg-gray-50 dark:bg-slate-800/50 text-gray-300 dark:text-slate-600'
                                                 }`}>{stop.pickupCount} stu.</span>
                                         </div>
                                     </motion.div>
@@ -277,26 +291,26 @@ const DriverDashboard = () => {
 
                     {activeTab === 'students' && (
                         <motion.div key="students" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between">
-                                <h2 className="font-bold text-gray-800 text-sm flex items-center"><Users className="w-4 h-4 mr-2 text-vignan-blue" /> Attendance</h2>
+                            className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+                            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 border-b border-gray-100 dark:border-slate-800 flex justify-between">
+                                <h2 className="font-bold text-gray-800 dark:text-white text-sm flex items-center"><Users className="w-4 h-4 mr-2 text-vignan-blue dark:text-vignan-cyan" /> Attendance</h2>
                                 <div className="flex space-x-3 text-xs font-bold">
-                                    <span className="text-green-600">{attendance.filter(s => s.status === 'present').length} ✓</span>
-                                    <span className="text-red-500">{attendance.filter(s => s.status === 'absent').length} ✗</span>
+                                    <span className="text-green-600 dark:text-green-400">{attendance.filter(s => s.status === 'present').length} ✓</span>
+                                    <span className="text-red-500 dark:text-red-400">{attendance.filter(s => s.status === 'absent').length} ✗</span>
                                 </div>
                             </div>
-                            <motion.div variants={containerVariants} initial="hidden" animate="show" className="divide-y divide-gray-50">
+                            <motion.div variants={containerVariants} initial="hidden" animate="show" className="divide-y divide-gray-50 dark:divide-slate-800">
                                 {attendance.map(s => (
-                                    <motion.div key={s.id} variants={itemVariants} className="flex items-center justify-between p-4 hover:bg-gray-50/80">
+                                    <motion.div key={s.id} variants={itemVariants} className="flex items-center justify-between p-4 hover:bg-gray-50/80 dark:hover:bg-slate-800/50">
                                         <div>
-                                            <p className="font-bold text-sm text-gray-800">{s.name}</p>
-                                            <p className="text-xs text-gray-400 flex items-center mt-0.5">
+                                            <p className="font-bold text-sm text-gray-800 dark:text-white">{s.name}</p>
+                                            <p className="text-xs text-gray-400 dark:text-slate-500 flex items-center mt-0.5">
                                                 <MapPin className="w-3 h-3 mr-1" />{s.stop}
                                             </p>
                                         </div>
                                         <motion.button whileTap={{ scale: 0.9 }} onClick={() => toggleAttendance(s.id)}
-                                            className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-bold ${s.status === 'present' ? 'bg-green-100 text-green-700' :
-                                                s.status === 'absent' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+                                            className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-bold ${s.status === 'present' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                                                s.status === 'absent' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-500'
                                                 }`}>
                                             {s.status === 'present' ? <CheckCircle className="w-3 h-3" /> : s.status === 'absent' ? <XCircle className="w-3 h-3" /> : null}
                                             <span className="capitalize">{s.status}</span>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SeatLayout from '../../components/SeatLayout';
 import VignanLogo from '../../components/VignanLogo';
+import ThemeToggle from '../../components/ThemeToggle';
 import { LogOut, MapPin, Clock, CreditCard, Download, Navigation, Bus, ChevronRight, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../supabaseClient';
@@ -43,6 +44,12 @@ const StudentDashboard = () => {
     const [occupiedSeats, setOccupiedSeats] = useState(['R2-L1', 'R3-R2', 'R12-1', 'R4-L1']);
     const [activeTab, setActiveTab] = useState('status');
 
+    const [showPaymentMock, setShowPaymentMock] = useState(false);
+    const [passGenerated, setPassGenerated] = useState(false);
+    const mapRef = useRef(null);
+    const mapInstance = useRef(null);
+    const markerInstance = useRef(null);
+
     useEffect(() => {
         const fetchStudentData = async () => {
             if (!storedUser.roll) return;
@@ -82,7 +89,7 @@ const StudentDashboard = () => {
                     let status = diff < -5 ? 'passed' : diff <= 15 ? 'next' : 'future';
                     const period = h >= 12 ? 'PM' : 'AM';
                     const displayH = h > 12 ? h - 12 : h;
-                    return { name: s.stop_name, time: `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`, status };
+                    return { name: s.stop_name, time: `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period} `, status };
                 });
                 setRouteStops(stops);
             }
@@ -101,23 +108,52 @@ const StudentDashboard = () => {
         const initBus = async () => {
             const { data } = await supabase.from('buses').select('current_location, status').eq('id', BUS_ID).single();
             if (data) {
-                setBusLocation(data.current_location || null);
+                const loc = data.current_location || null;
+                setBusLocation(loc);
                 setBusActive(data.status === 'active');
-                applyStopStatuses(data.current_location);
+                applyStopStatuses(loc);
+
+                if (loc && mapRef.current && !mapInstance.current && window.L) {
+                    mapInstance.current = window.L.map(mapRef.current).setView([loc.lat, loc.lng], 15);
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(mapInstance.current);
+
+                    markerInstance.current = window.L.marker([loc.lat, loc.lng], {
+                        icon: window.L.divIcon({
+                            className: 'custom-bus-marker',
+                            html: `< div class="bg-vignan-blue p-2 rounded-full border-2 border-white shadow-lg" > <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bus"><path d="M10 6h4" /><path d="M19 16v4" /><path d="M5 16v4" /><path d="M16 18h2a2 2 0 0 0 2-2v-5" /><path d="M8 18H6a2 2 0 0 1-2-2v-5" /><path d="M12 9H4" /><path d="M9 14h6" /><path d="M7 10h10v6H7Z" /></svg></div > `,
+                            iconSize: [36, 36],
+                            iconAnchor: [18, 18]
+                        })
+                    }).addTo(mapInstance.current);
+                }
             }
         };
         initBus();
 
         const channel = supabase.channel('bus-location')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'buses', filter: `id=eq.${BUS_ID}` }, (payload) => {
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'buses', filter: `id = eq.${BUS_ID} ` }, (payload) => {
                 const loc = payload.new.current_location || null;
                 setBusLocation(loc);
                 setBusActive(payload.new.status === 'active');
-                // ✅ Update route stop statuses based on driver GPS
                 applyStopStatuses(loc);
+
+                if (loc && mapInstance.current) {
+                    mapInstance.current.setView([loc.lat, loc.lng], 15);
+                    if (markerInstance.current) {
+                        markerInstance.current.setLatLng([loc.lat, loc.lng]);
+                    }
+                }
             }).subscribe();
 
-        return () => { supabase.removeChannel(channel); };
+        return () => {
+            supabase.removeChannel(channel);
+            if (mapInstance.current) {
+                mapInstance.current.remove();
+                mapInstance.current = null;
+            }
+        };
     }, []);
 
     const handleLogout = () => { navigate('/'); };
@@ -163,14 +199,17 @@ const StudentDashboard = () => {
             <header className="sticky top-0 z-40 bg-white/5 backdrop-blur-xl border-b border-white/10">
                 <div className="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
                     <VignanLogo size={40} dark={false} />
-                    <motion.button
-                        whileHover={{ scale: 1.1, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={handleLogout}
-                        className="p-2 bg-white/10 rounded-full text-white hover:bg-red-500/20 hover:text-red-400 transition-all border border-white/10"
-                    >
-                        <LogOut className="w-5 h-5" />
-                    </motion.button>
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle />
+                        <motion.button
+                            whileHover={{ scale: 1.1, rotate: 90 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={handleLogout}
+                            className="p-2 bg-white/10 rounded-full text-white hover:bg-red-500/20 hover:text-red-400 transition-all border border-white/10"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </motion.button>
+                    </div>
                 </div>
 
                 {/* Student Identity Card (Glass) */}
@@ -201,13 +240,13 @@ const StudentDashboard = () => {
             </header>
 
             <motion.div layout className="p-4 space-y-4 max-w-md mx-auto">
-                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
                     {[{ id: 'status', label: 'Live Status', icon: Navigation }, { id: 'route', label: 'My Route', icon: MapPin }, { id: 'fees', label: 'Fee Details', icon: CreditCard }].map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
                         return (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                className={`flex-1 py-3 px-2 flex flex-col items-center justify-center text-xs font-medium rounded-lg transition-all duration-300 relative ${isActive ? 'text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                                className={`flex-1 py-3 px-2 flex flex-col items-center justify-center text-xs font-medium rounded-lg transition-all duration-300 relative ${isActive ? 'text-white' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}>
                                 {isActive && <motion.div layoutId="activeTab" className="absolute inset-0 bg-vignan-blue rounded-lg shadow-md" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
                                 <span className="relative z-10 flex flex-col items-center"><Icon className="w-5 h-5 mb-1" />{tab.label}</span>
                             </button>
@@ -219,56 +258,56 @@ const StudentDashboard = () => {
                     {activeTab === 'status' && (
                         <motion.div key="status" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
                             {/* Current Location Card — live from GPS */}
-                            <motion.div whileHover={{ y: -5 }} className="bg-white rounded-xl p-5 shadow-lg border-t-4 border-vignan-accent relative overflow-hidden">
+                            <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-lg border-t-4 border-vignan-accent relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-vignan-blue/5 rounded-bl-full -mr-4 -mt-4"></div>
                                 <div className="flex justify-between items-start mb-4 relative z-10">
                                     <div>
-                                        <h2 className="text-gray-500 text-xs uppercase font-bold tracking-wider">Bus Location</h2>
-                                        <p className="text-xl font-bold text-gray-900 mt-1">
+                                        <h2 className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Bus Location</h2>
+                                        <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">
                                             {busActive && busLocation?.nextStop
-                                                ? `Near ${busLocation.nextStop}`
+                                                ? `Near ${busLocation.nextStop} `
                                                 : 'Bus Not Started'}
                                         </p>
                                     </div>
-                                    <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center shadow-sm ${busActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center shadow-sm ${busActive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-500'}`}>
                                         <span className={`w-2 h-2 rounded-full mr-2 ${busActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
                                         {busActive ? 'On Route' : 'Offline'}
                                     </div>
                                 </div>
-                                <div className="flex items-center text-sm text-gray-600 mb-2">
+                                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mb-2">
                                     <MapPin className="w-4 h-4 mr-2 text-vignan-blue" />
                                     <span>
                                         {busActive && busLocation?.nextStop
-                                            ? `Next Stop: ${busLocation.nextStop}`
+                                            ? `Next Stop: ${busLocation.nextStop} `
                                             : 'Waiting for trip to start'}
                                     </span>
                                 </div>
-                                <div className="flex items-center text-sm text-gray-600">
+                                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                                     <Clock className="w-4 h-4 mr-2 text-vignan-blue" /><span>ETA: 15 mins to College</span>
                                 </div>
                             </motion.div>
 
                             {/* Driver Card */}
-                            <motion.div whileHover={{ scale: 1.02 }} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                            <motion.div whileHover={{ scale: 1.02 }} className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-800 flex items-center justify-between">
                                 <div className="flex items-center">
                                     <div className="relative">
                                         <img src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=150&h=150&fit=crop" alt="Driver" className="w-12 h-12 rounded-full object-cover border-2 border-vignan-blue shadow-sm" />
                                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                                     </div>
                                     <div className="ml-3">
-                                        <p className="text-[0.65rem] text-gray-500 font-bold uppercase tracking-wider">Bus Driver</p>
-                                        <h3 className="text-sm font-bold text-gray-900 leading-tight">CH Srinu</h3>
-                                        <p className="text-xs text-gray-500 mt-0.5">+91 97055 41626</p>
+                                        <p className="text-[0.65rem] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Bus Driver</p>
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">CH Srinu</h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">+91 97055 41626</p>
                                     </div>
                                 </div>
                                 <motion.a whileTap={{ scale: 0.9 }} href="tel:+919705541626"
-                                    className="bg-green-50 text-green-600 p-3 rounded-full hover:bg-green-100 transition-colors shadow-sm border border-green-100">
+                                    className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-full hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors shadow-sm border border-green-100 dark:border-green-900/30">
                                     <Phone className="w-5 h-5 fill-current" />
                                 </motion.a>
                             </motion.div>
 
                             {/* Live Tracking Card */}
-                            <motion.div whileHover={{ scale: 1.01 }} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 relative">
+                            <motion.div whileHover={{ scale: 1.01 }} className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-slate-800 relative">
                                 {busActive && busLocation ? (
                                     <>
                                         <div className="bg-gradient-to-r from-vignan-blue to-indigo-700 text-white p-4 flex items-center justify-between">
@@ -284,20 +323,18 @@ const StudentDashboard = () => {
                                             </div>
                                             <Bus className="w-8 h-8 opacity-30" />
                                         </div>
-                                        <div className="p-4">
-                                            <p className="text-xs text-gray-500 mb-3">Last updated: {busLocation.timestamp ? new Date(busLocation.timestamp).toLocaleTimeString() : 'Just now'}</p>
-                                            <a href={`https://www.google.com/maps?q=${busLocation.lat},${busLocation.lng}`}
-                                                target="_blank" rel="noopener noreferrer"
-                                                className="w-full flex items-center justify-center bg-vignan-blue text-white text-sm font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">
-                                                <MapPin className="w-4 h-4 mr-2" />Open in Google Maps →
-                                            </a>
+                                        <div className="p-0 h-[250px] relative">
+                                            <div ref={mapRef} className="w-full h-full z-0"></div>
+                                        </div>
+                                        <div className="p-4 bg-gray-50 dark:bg-slate-800/50 border-t dark:border-slate-800">
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0 font-bold uppercase tracking-widest text-center">OpenStreetMap Real-time Integration</p>
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="h-40 bg-gray-50 flex flex-col items-center justify-center text-center p-4">
-                                        <Bus className="w-10 h-10 text-gray-300 mb-2" />
-                                        <p className="text-sm font-bold text-gray-500">Bus Not Started Yet</p>
-                                        <p className="text-xs text-gray-400 mt-1">Live tracking will appear once the driver starts their trip.</p>
+                                    <div className="h-40 bg-gray-50 dark:bg-slate-800 flex flex-col items-center justify-center text-center p-4">
+                                        <Bus className="w-10 h-10 text-gray-300 dark:text-slate-600 mb-2" />
+                                        <p className="text-sm font-bold text-gray-500 dark:text-slate-400">Bus Not Started Yet</p>
+                                        <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Live tracking will appear once the driver starts their trip.</p>
                                     </div>
                                 )}
                             </motion.div>
@@ -321,25 +358,25 @@ const StudentDashboard = () => {
 
                     {activeTab === 'route' && (
                         <motion.div key="route" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="bg-gray-50 p-4 border-b border-gray-100 sticky top-0 z-10">
-                                <h2 className="text-lg font-bold text-gray-800">{student.route}</h2>
-                                <p className="text-xs text-gray-500 font-medium">Bus No: {student.busNumber}</p>
+                            className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+                            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10">
+                                <h2 className="text-lg font-bold text-gray-800 dark:text-white">{student.route}</h2>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Bus No: {student.busNumber}</p>
                             </div>
                             <div className="p-4">
                                 <motion.div variants={listContainer} initial="hidden" animate="show"
                                     className="relative border-l-2 border-vignan-blue/20 ml-2 space-y-0 py-2">
                                     {routeStops.map((stop, i) => (
                                         <motion.div key={i} variants={listItem} className="pl-8 relative pb-8 last:pb-0">
-                                            <div className={`absolute -left-[9px] top-1 w-[18px] h-[18px] rounded-full border-4 z-10 ${stop.status === 'passed' ? 'bg-vignan-blue border-vignan-blue' : stop.status === 'next' ? 'bg-white border-vignan-accent' : 'bg-white border-gray-300'}`}></div>
+                                            <div className={`absolute -left-[9px] top-1 w-[18px] h-[18px] rounded-full border-4 z-10 ${stop.status === 'passed' ? 'bg-vignan-blue border-vignan-blue' : stop.status === 'next' ? 'bg-white dark:bg-slate-900 border-vignan-accent' : 'bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700'}`}></div>
                                             {stop.status === 'next' && (
                                                 <motion.div initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                                                     className="absolute -left-[14px] -top-6 z-20 bg-vignan-yellow text-vignan-blue p-1 rounded-md shadow-lg border border-vignan-blue/10">
                                                     <Bus className="w-4 h-4" />
                                                 </motion.div>
                                             )}
-                                            <h3 className={`font-bold text-sm ${stop.status === 'passed' ? 'text-gray-900' : stop.status === 'next' ? 'text-vignan-blue text-base' : 'text-gray-400'}`}>{stop.name}</h3>
-                                            <p className="text-xs text-gray-400 font-mono mt-1 flex items-center"><Clock className="w-3 h-3 mr-1" /> {stop.time}</p>
+                                            <h3 className={`font - bold text - sm ${stop.status === 'passed' ? 'text-gray-900 dark:text-gray-100' : stop.status === 'next' ? 'text-vignan-blue dark:text-vignan-cyan text-base' : 'text-gray-400 dark:text-slate-600'} `}>{stop.name}</h3>
+                                            <p className="text-xs text-gray-400 dark:text-slate-500 font-mono mt-1 flex items-center"><Clock className="w-3 h-3 mr-1" /> {stop.time}</p>
                                         </motion.div>
                                     ))}
                                 </motion.div>
@@ -349,48 +386,149 @@ const StudentDashboard = () => {
 
                     {activeTab === 'fees' && (
                         <motion.div key="fees" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-4">
-                            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-center relative overflow-hidden">
+                            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 text-center relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-vignan-accent"></div>
-                                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">Academic Year 2024-25</p>
+                                <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Academic Year 2024-25</p>
                                 <motion.p initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                                    className="text-4xl font-extrabold text-vignan-blue">₹{student.fees.total.toLocaleString()}</motion.p>
-                                <p className="text-sm text-gray-400 mt-1">Total Transport Fee</p>
-                                <div className="mt-6 flex justify-center space-x-4 text-sm bg-gray-50 p-4 rounded-lg">
+                                    className="text-4xl font-extrabold text-vignan-blue dark:text-vignan-cyan">₹{student.fees.total.toLocaleString()}</motion.p>
+                                <p className="text-sm text-gray-400 dark:text-slate-500 mt-1">Total Transport Fee</p>
+                                <div className="mt-6 flex justify-center space-x-4 text-sm bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg">
                                     <div className="text-center flex-1">
-                                        <p className="text-green-600 font-bold text-lg">₹{student.fees.paid.toLocaleString()}</p>
-                                        <p className="text-gray-500 text-xs uppercase font-bold">Paid</p>
+                                        <p className="text-green-600 dark:text-green-400 font-bold text-lg">₹{student.fees.paid.toLocaleString()}</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">Paid</p>
                                     </div>
-                                    <div className="w-px bg-gray-200"></div>
+                                    <div className="w-px bg-gray-200 dark:bg-slate-700"></div>
                                     <div className="text-center flex-1">
-                                        <p className="text-red-600 font-bold text-lg">₹{student.fees.pending.toLocaleString()}</p>
-                                        <p className="text-gray-500 text-xs uppercase font-bold">Due</p>
+                                        <p className="text-red-600 dark:text-red-400 font-bold text-lg">₹{student.fees.pending.toLocaleString()}</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">Due</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                                <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wider">Quick Actions</h3>
-                                <motion.button whileTap={{ scale: 0.98 }}
-                                    className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-indigo-50 text-vignan-blue rounded-lg mb-2 transition-colors border border-transparent hover:border-vignan-blue group">
+                            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
+                                <h3 className="font-bold text-gray-800 dark:text-white mb-3 text-sm uppercase tracking-wider">Quick Actions</h3>
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setShowPaymentMock(true)}
+                                    className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 hover:bg-indigo-50 dark:hover:bg-slate-800 text-vignan-blue dark:text-vignan-cyan rounded-lg mb-2 transition-colors border border-transparent hover:border-vignan-blue dark:hover:border-vignan-cyan group">
                                     <div className="flex items-center">
-                                        <div className="bg-white p-2 rounded-full shadow-sm mr-3 group-hover:bg-vignan-blue group-hover:text-white transition-colors"><CreditCard className="w-5 h-5" /></div>
+                                        <div className="bg-white dark:bg-slate-900 p-2 rounded-full shadow-sm mr-3 group-hover:bg-vignan-blue group-hover:text-white transition-colors"><CreditCard className="w-5 h-5" /></div>
                                         <span className="font-bold">Pay Online</span>
                                     </div>
-                                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-vignan-blue" />
+                                    <ChevronRight className="w-5 h-5 text-gray-300 dark:text-slate-600 group-hover:text-vignan-blue" />
                                 </motion.button>
-                                <motion.button whileTap={{ scale: 0.98 }}
-                                    className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-indigo-50 text-vignan-blue rounded-lg transition-colors border border-transparent hover:border-vignan-blue group">
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setPassGenerated(true)}
+                                    className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 hover:bg-indigo-50 dark:hover:bg-slate-800 text-vignan-blue dark:text-vignan-cyan rounded-lg transition-colors border border-transparent hover:border-vignan-blue dark:hover:border-vignan-cyan group">
                                     <div className="flex items-center">
-                                        <div className="bg-white p-2 rounded-full shadow-sm mr-3 group-hover:bg-vignan-blue group-hover:text-white transition-colors"><Download className="w-5 h-5" /></div>
-                                        <span className="font-bold">Download Receipt</span>
+                                        <div className="bg-white dark:bg-slate-900 p-2 rounded-full shadow-sm mr-3 group-hover:bg-vignan-blue group-hover:text-white transition-colors"><Download className="w-5 h-5" /></div>
+                                        <span className="font-bold">Digital Transport Pass</span>
                                     </div>
-                                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-vignan-blue" />
+                                    <ChevronRight className="w-5 h-5 text-gray-300 dark:text-slate-600 group-hover:text-vignan-blue" />
                                 </motion.button>
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </motion.div>
-        </div>
+
+                {/* Modals */}
+                <AnimatePresence>
+                    {showPaymentMock && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                                className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm border border-white/20 shadow-2xl overflow-hidden relative">
+                                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold italic text-lg">R</div>
+                                        <span className="font-bold text-gray-800 dark:text-white">Razorpay</span>
+                                    </div>
+                                    <button onClick={() => setShowPaymentMock(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">✕</button>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-black tracking-widest mb-1">Payment for</p>
+                                        <p className="font-bold text-gray-900 dark:text-white">College Bus Fee (Term 2)</p>
+                                        <div className="mt-4 flex justify-between items-end">
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">₹{student.fees.pending.toLocaleString()}</p>
+                                            <p className="text-[10px] text-blue-600 dark:text-vignan-cyan font-bold tracking-tighter">SECURE SECURE SECURE</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold text-center">Select Payment Method</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {['UPI', 'Card', 'Net Banking', 'Wallet'].map(m => (
+                                                <button key={m} className="p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:border-blue-500 transition-colors">{m}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            alert('Payment Successful (Demo Only)');
+                                            setShowPaymentMock(false);
+                                        }}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98]">
+                                        Pay Successfully
+                                    </button>
+                                    <p className="text-[10px] text-gray-400 text-center">By continuing, you agree to the Terms and Conditions.</p>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+
+                    {passGenerated && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                                className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden w-full max-w-sm border border-white/20 shadow-2xl">
+                                <div className="bg-vignan-blue p-6 text-center text-white relative">
+                                    <div className="absolute top-4 right-4 cursor-pointer" onClick={() => setPassGenerated(false)}>✕</div>
+                                    <VignanLogo size={50} dark={false} className="mx-auto mb-4" />
+                                    <h2 className="text-xl font-black uppercase tracking-widest">Transport Pass</h2>
+                                    <p className="text-vignan-cyan text-xs font-bold mt-1">2024 - 2025</p>
+                                </div>
+                                <div className="p-6 space-y-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 bg-gray-200 dark:bg-slate-800 rounded-xl overflow-hidden">
+                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.id}`} alt="profile" />
+                                        </div >
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 dark:text-white uppercase leading-tight">{student.name}</h3>
+                                            <p className="text-xs text-vignan-blue dark:text-vignan-cyan font-mono">{student.id}</p>
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Student of VITS</p>
+                                        </div>
+                                    </div >
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl">
+                                            <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Bus Number</p>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{student.busNumber}</p>
+                                        </div>
+                                        <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl">
+                                            <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Seat Assignment</p>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{student.seat}</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700">
+                                        <p className="text-[8px] text-center text-gray-500 uppercase font-black mb-2">Security Hash (QR Placeholder)</p>
+                                        <div className="w-24 h-24 mx-auto bg-white p-2 rounded-lg">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=VGNT-PASS-2024" alt="QR" className="w-full" />
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            window.print();
+                                        }}
+                                        className="w-full bg-vignan-blue text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-[0.98]">
+                                        <Download className="w-5 h-5" /> Download PDF Pass
+                                    </button>
+                                </div >
+                            </motion.div >
+                        </motion.div >
+                    )}
+                </AnimatePresence >
+            </motion.div >
+        </div >
     );
 };
 

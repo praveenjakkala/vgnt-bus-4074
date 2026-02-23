@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Bus, Briefcase, ArrowRight, ShieldCheck, Mail, Lock, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VignanLogo from '../../components/VignanLogo';
-import { supabase } from '../../supabaseClient';
+import ThemeToggle from '../../components/ThemeToggle';
 
 const Login = () => {
     const [role, setRole] = useState('student');
@@ -25,7 +25,14 @@ const Login = () => {
         e.preventDefault();
         setError('');
 
-        if (role === 'management') { navigate('/management'); return; }
+        if (role === 'management') {
+            if (!email.endsWith('@vignan.ac.in')) {
+                setError('Official @vignan.ac.in email required for Management.');
+                return;
+            }
+            navigate('/management');
+            return;
+        }
         if (role === 'driver') { navigate('/driver'); return; }
 
         setLoading(true);
@@ -180,16 +187,19 @@ const Login = () => {
                 initial={{ x: 100, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="md:w-[45%] bg-white flex flex-col justify-center items-center p-12 lg:p-24 relative overflow-hidden"
+                className="md:w-[45%] bg-white dark:bg-slate-900 flex flex-col justify-center items-center p-12 lg:p-24 relative overflow-hidden"
             >
+                <div className="absolute top-6 right-6 z-20">
+                    <ThemeToggle />
+                </div>
                 <div className="w-full max-w-md relative z-10">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
                     >
-                        <h2 className="text-4xl font-black text-slate-900 mb-2">Welcome Back</h2>
-                        <p className="text-slate-400 font-medium mb-12">Empowering your journey with technology.</p>
+                        <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-2">Welcome Back</h2>
+                        <p className="text-slate-400 dark:text-slate-400 font-medium mb-12">Empowering your journey with technology.</p>
                     </motion.div>
 
                     {/* Premium Role Selector */}
@@ -202,7 +212,7 @@ const Login = () => {
                                 onClick={() => setRole(id)}
                                 className={`group flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden ${role === id
                                     ? `border-transparent bg-gradient-to-br ${color} text-white shadow-2xl shadow-blue-200/50 scale-105 z-10`
-                                    : 'border-slate-50 bg-slate-50/50 text-slate-400 hover:border-slate-200 hover:bg-white'
+                                    : 'border-slate-50 bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-800 text-slate-400 hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800'
                                     }`}
                             >
                                 {role === id && (
@@ -243,7 +253,7 @@ const Login = () => {
                                             onChange={e => setEmail(e.target.value)}
                                             placeholder={role === 'student' ? 'e.g. JAKKALA PRAVEEN' : role === 'driver' ? 'Enter Driver ID' : 'admin@vignan.ac.in'}
                                             required
-                                            className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-50 bg-slate-50/50 focus:bg-white focus:border-vignan-blue outline-none transition-all font-bold text-slate-800 placeholder:text-slate-300 placeholder:font-medium"
+                                            className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-50 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800 dark:focus:bg-slate-900 dark:text-white focus:bg-white focus:border-vignan-blue outline-none transition-all font-bold text-slate-800 placeholder:text-slate-300 placeholder:font-medium"
                                         />
                                     </div>
                                 </div>
@@ -262,8 +272,17 @@ const Login = () => {
                                             onChange={e => setPassword(e.target.value)}
                                             placeholder={role === 'student' ? 'e.g. 23891A7229' : '••••••••'}
                                             required
-                                            className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-50 bg-slate-50/50 focus:bg-white focus:border-vignan-blue outline-none transition-all font-bold text-slate-800 font-mono tracking-widest placeholder:text-slate-300 placeholder:tracking-normal"
+                                            className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-50 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800 dark:focus:bg-slate-900 dark:text-white focus:bg-white focus:border-vignan-blue outline-none transition-all font-bold text-slate-800 font-mono tracking-widest placeholder:text-slate-300 placeholder:tracking-normal"
                                         />
+                                    </div>
+                                    <div className="flex justify-end mt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setError("Please contact the Transport Department for password recovery.")}
+                                            className="text-[10px] font-black text-slate-400 hover:text-vignan-blue uppercase tracking-widest transition-colors"
+                                        >
+                                            Forgot Password?
+                                        </button>
                                     </div>
                                 </div>
                             </div>
